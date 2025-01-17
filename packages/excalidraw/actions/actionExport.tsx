@@ -20,6 +20,7 @@ import type { Theme } from "../element/types";
 
 import "../components/ToolIcon.scss";
 import { StoreAction } from "../store";
+import { serializeAsJSON } from "../data/json";
 
 export const actionChangeProjectName = register({
   name: "changeProjectName",
@@ -158,6 +159,15 @@ export const actionSaveToActiveFile = register({
             app.getName(),
           )
         : await saveAsJSON(elements, appState, app.files, app.getName());
+
+      const serialized = serializeAsJSON(
+        elements,
+        appState,
+        app.files,
+        "local",
+      );
+
+      window.parent.postMessage({ type: "SAVE_FILE", data: serialized }, "*");
 
       return {
         storeAction: StoreAction.NONE,

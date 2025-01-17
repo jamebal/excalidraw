@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
   const envVars = loadEnv(mode, `../`);
   // https://vitejs.dev/config/
   return {
+    base: "/excalidraw/app/",
     server: {
       port: Number(envVars.VITE_APP_PORT || 3000),
       // open the browser
@@ -22,7 +23,7 @@ export default defineConfig(({ mode }) => {
     //more located in parallel with the vite.config.ts file but in parent dir
     envDir: "../",
     build: {
-      outDir: "build",
+      outDir: "build/excalidraw/app",
       rollupOptions: {
         output: {
           assetFileNames(chunkInfo) {
@@ -60,6 +61,7 @@ export default defineConfig(({ mode }) => {
         changefreq: "monthly",
         // its static in public folder
         generateRobotsTxt: false,
+        basePath: "/excalidraw/app/",
       }),
       woff2BrowserPlugin(),
       react(),
@@ -168,14 +170,14 @@ export default defineConfig(({ mode }) => {
               type: "image/png",
             },
           ],
-          start_url: "/",
-          id:"excalidraw",
+          start_url: "/excalidraw/app/",
+          id: "excalidraw",
           display: "standalone",
           theme_color: "#121212",
           background_color: "#ffffff",
           file_handlers: [
             {
-              action: "/",
+              action: "/excalidraw/app/",
               accept: {
                 "application/vnd.excalidraw+json": [".excalidraw"],
               },

@@ -24,7 +24,7 @@ import {
   LiveCollaborationTrigger,
   TTDDialogTrigger,
   StoreAction,
-  reconcileElements,
+  reconcileElements, serializeAsJSON
 } from "../packages/excalidraw";
 import type {
   AppState,
@@ -165,19 +165,7 @@ window.addEventListener(
   },
 );
 
-let isSelfEmbedding = false;
-
-if (window.self !== window.top) {
-  try {
-    const parentUrl = new URL(document.referrer);
-    const currentUrl = new URL(window.location.href);
-    if (parentUrl.origin === currentUrl.origin) {
-      isSelfEmbedding = true;
-    }
-  } catch (error) {
-    // ignore
-  }
-}
+const isSelfEmbedding = false;
 
 const shareableLinkConfirmDialog = {
   title: t("overwriteConfirm.modal.shareableLink.title"),
@@ -590,6 +578,40 @@ const ExcalidrawWrapper = () => {
   }, [isCollabDisabled, collabAPI, excalidrawAPI, setLangCode]);
 
   useEffect(() => {
+    if (excalidrawAPI) {
+      // 通知父窗口加载成功
+      window.parent.postMessage({ type: "EXCALIDRAW_READY" }, "*");
+    }
+    // 监听父窗口消息
+    const handleMessage = (event: any) => {
+      if (event.data.type === "INIT_DATA") {
+        const { elements, appState, files } = event.data.data;
+        // 先更新场景
+        excalidrawAPI?.updateScene({
+          elements,
+          appState: {
+            ...appState,
+            isLoading: false,
+          },
+        });
+        // 单独添加文件
+        if (files) {
+          excalidrawAPI?.addFiles(files);
+        }
+        window.parent.postMessage({ type: "INIT_DONE" }, "*");
+      }
+      if (event.data.type === "REQUEST_SAVE") {
+        const { elements, appState, files } = event.data.data;
+        const serialized = serializeAsJSON(elements, appState, files, "local");
+        window.parent.postMessage({ type: "SAVE_FILE", data: serialized }, "*");
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [excalidrawAPI]);
+
+  useEffect(() => {
     const unloadHandler = (event: BeforeUnloadEvent) => {
       LocalData.flushSave();
 
@@ -638,6 +660,11 @@ const ExcalidrawWrapper = () => {
               }
               return element;
             });
+
+          window.parent.postMessage(
+            { type: "CHANGE_FILE", data: { elements, appState, files } },
+            "*",
+          );
 
           if (didChange) {
             excalidrawAPI.updateScene({
