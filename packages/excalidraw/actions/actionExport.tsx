@@ -149,8 +149,18 @@ export const actionSaveToActiveFile = register({
   },
   perform: async (elements, appState, value, app) => {
     const fileHandleExists = !!appState.fileHandle;
-
+    const isSelfEmbedding = window.self !== window.top;
     try {
+      if (isSelfEmbedding) {
+        const serialized = serializeAsJSON(
+          elements,
+          appState,
+          app.files,
+          "local",
+        );
+        window.parent.postMessage({ type: "SAVE_FILE", data: serialized }, "*");
+        return { storeAction: StoreAction.NONE };
+      }
       const { fileHandle } = isImageFileHandle(appState.fileHandle)
         ? await resaveAsImageWithScene(
             elements,
@@ -159,15 +169,6 @@ export const actionSaveToActiveFile = register({
             app.getName(),
           )
         : await saveAsJSON(elements, appState, app.files, app.getName());
-
-      const serialized = serializeAsJSON(
-        elements,
-        appState,
-        app.files,
-        "local",
-      );
-
-      window.parent.postMessage({ type: "SAVE_FILE", data: serialized }, "*");
 
       return {
         storeAction: StoreAction.NONE,
